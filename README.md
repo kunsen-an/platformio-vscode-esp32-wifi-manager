@@ -1,3 +1,7 @@
+# Building esp32-wifi-manager on PlatformIO for Visual Studio Code
+This is a snapshot of esp32-wifi-manager on PlatformIO for Visual Studio Code.
+The original esp32-wifi-manager can be accessed at https://github.com/tonyp7/esp32-wifi-manager .
+
 # What is esp32-wifi-manager?
 *esp32-wifi-manager* is an esp32 program that enables easy management of wifi networks through a web application.
 

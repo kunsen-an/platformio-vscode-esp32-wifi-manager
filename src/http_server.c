@@ -59,26 +59,36 @@ function to process requests, decode URLs, serve files, etc. etc.
 #include "http_server.h"
 #include "wifi_manager.h"
 
+#define DO_NOT_USE_GZIP		0	/* do not use jquery.gz but jquery.js */
 
 EventGroupHandle_t http_server_event_group;
 EventBits_t uxBits;
 
 /* embedded binary data */
-extern const uint8_t style_css_start[] asm("_binary_style_css_start");
-extern const uint8_t style_css_end[]   asm("_binary_style_css_end");
-extern const uint8_t jquery_gz_start[] asm("_binary_jquery_gz_start");
-extern const uint8_t jquery_gz_end[] asm("_binary_jquery_gz_end");
-extern const uint8_t code_js_start[] asm("_binary_code_js_start");
-extern const uint8_t code_js_end[] asm("_binary_code_js_end");
-extern const uint8_t index_html_start[] asm("_binary_index_html_start");
-extern const uint8_t index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t style_css_start[] asm("_binary_src_style_css_start");
+extern const uint8_t style_css_end[]   asm("_binary_src_style_css_end");
+#if DO_NOT_USE_GZIP
+extern const uint8_t jquery_js_start[] asm("_binary_src_jquery_js_start");
+extern const uint8_t jquery_js_end[] asm("_binary_src_jquery_js_end");
+#else
+extern const uint8_t jquery_gz_start[] asm("_binary_src_jquery_gz_start");
+extern const uint8_t jquery_gz_end[] asm("_binary_src_jquery_gz_end");
+#endif
+extern const uint8_t code_js_start[] asm("_binary_src_code_js_start");
+extern const uint8_t code_js_end[] asm("_binary_src_code_js_end");
+extern const uint8_t index_html_start[] asm("_binary_src_index_html_start");
+extern const uint8_t index_html_end[] asm("_binary_src_index_html_end");
 
 
 /* const http headers stored in ROM */
 const static char http_html_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/html\n\n";
 const static char http_css_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/css\nCache-Control: public, max-age=31536000\n\n";
 const static char http_js_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/javascript\n\n";
-const static char http_jquery_gz_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/javascript\nAccept-Ranges: bytes\nContent-Length: 29995\nContent-Encoding: gzip\n\n";
+#if DO_NOT_USE_GZIP
+const static char http_jquery_js_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/javascript\nAccept-Ranges: bytes\nContent-Length: 86661\n\n";
+#else
+const static char http_jquery_gz_hdr[] = "HTTP/1.1 200 OK\nContent-type: application/json\nAccept-Ranges: bytes\nContent-Length: 29994\nContent-Encoding: gzip\n\n";
+#endif
 const static char http_400_hdr[] = "HTTP/1.1 400 Bad Request\nContent-Length: 0\n\n";
 const static char http_404_hdr[] = "HTTP/1.1 404 Not Found\nContent-Length: 0\n\n";
 const static char http_503_hdr[] = "HTTP/1.1 503 Service Unavailable\nContent-Length: 0\n\n";
@@ -166,12 +176,17 @@ void http_server_netconn_serve(struct netconn *conn) {
 				netconn_write(conn, index_html_start, index_html_end - index_html_start, NETCONN_NOCOPY);
 			}
 			else if(strstr(line, "GET /jquery.js ")) {
+#if DO_NOT_USE_GZIP
+				netconn_write(conn, http_jquery_js_hdr, sizeof(http_jquery_js_hdr) - 1, NETCONN_NOCOPY);
+				netconn_write(conn, jquery_js_start, jquery_js_end - jquery_js_start - 1, NETCONN_NOCOPY);
+#else
 				netconn_write(conn, http_jquery_gz_hdr, sizeof(http_jquery_gz_hdr) - 1, NETCONN_NOCOPY);
-				netconn_write(conn, jquery_gz_start, jquery_gz_end - jquery_gz_start, NETCONN_NOCOPY);
+				netconn_write(conn, jquery_gz_start, jquery_gz_end - jquery_gz_start - 1, NETCONN_NOCOPY);
+#endif
 			}
 			else if(strstr(line, "GET /code.js ")) {
 				netconn_write(conn, http_js_hdr, sizeof(http_js_hdr) - 1, NETCONN_NOCOPY);
-				netconn_write(conn, code_js_start, code_js_end - code_js_start, NETCONN_NOCOPY);
+				netconn_write(conn, code_js_start, code_js_end - code_js_start - 1, NETCONN_NOCOPY);
 			}
 			else if(strstr(line, "GET /ap.json ")) {
 				/* if we can get the mutex, write the last version of the AP list */
